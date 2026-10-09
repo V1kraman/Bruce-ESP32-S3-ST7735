@@ -1,186 +1,160 @@
-# Hardware Guide
+# Bruce ESP32-S3 ST7735
 
-> Hardware reference for the custom **ESP32-S3 + 1.8-inch ST7735 Bruce handheld**.
->
-> This document connects the physical build to the board-specific firmware configuration. Keep it in sync with the actual wiring whenever the hardware changes.
+A custom build of [Bruce firmware](https://github.com/BruceDevices/firmware) adapted for an ESP32-S3 board with a 1.8-inch ST7735 TFT display and five-button navigation.
+
+This repository brings the firmware source, board configuration, wiring references, and hardware photos together so the software and physical build can be understood in one place.
 
 ## Contents
 
-- [Hardware overview](#hardware-overview)
-- [Five-button controls](#five-button-controls)
-- [Display and peripheral wiring](#display-and-peripheral-wiring)
-- [Power and battery](#power-and-battery)
-- [Pin verification workflow](#pin-verification-workflow)
-- [Assembly photos and diagrams](#assembly-photos-and-diagrams)
-- [Bring-up checklist](#bring-up-checklist)
+- [Project overview](#project-overview)
+- [Hardware](#hardware)
+- [Repository guide](#repository-guide)
+- [Wiring and pinout](#wiring-and-pinout)
+- [Build from source](#build-from-source)
+- [Upload to the ESP32-S3](#upload-to-the-esp32-s3)
+- [Button controls](#button-controls)
 - [Troubleshooting](#troubleshooting)
+- [Safety and responsible use](#safety-and-responsible-use)
+- [Credits and license](#credits-and-license)
 
----
+## Project overview
 
-## Hardware overview
+Bruce is an open-source firmware project for supported ESP32-based devices. This repository contains a hardware-specific build intended for an ESP32-S3 and a 1.8-inch ST7735 display.
 
-| Part | Role | Notes |
-|---|---|---|
-| ESP32-S3 N8R8 development board | Main controller | Confirm the exact board revision before wiring. |
-| 1.8-inch ST7735 TFT | User interface | Display setup is defined by the board-specific firmware configuration. |
-| Five tactile buttons | Navigation and selection | The current board configuration uses active-low button inputs. |
-| Optional add-on modules | Depends on the assembled revision | Only treat a module as installed when it is shown in the current wiring diagram and physically present. |
+The purpose of this repository is to keep the custom board configuration and firmware source alongside the information needed to wire, build, and work on the device.
 
-**Board-specific firmware files:** [`boards/esp32-s3-st7735/`](../boards/esp32-s3-st7735/)  
-**Build configuration:** [`platformio.ini`](../platformio.ini)
+> This is a community hardware adaptation, not an official Bruce release.
 
-## Five-button controls
+## Hardware
 
-The button GPIO assignments below are taken from the current project configuration. The inputs are active-low, so each button should connect its assigned GPIO to **GND when pressed**, with the input configured appropriately by the firmware.
+The core configuration is intended for:
 
-| Button | GPIO | Intended control |
+- **Controller:** ESP32-S3 N8R8 development board
+- **Display:** 1.8-inch ST7735 TFT
+- **Navigation:** five tactile buttons
+- **Build system:** PlatformIO
+
+Optional modules should only be considered part of a particular build when they are present in the hardware and wiring documentation. Check the exact module revision and its electrical requirements before connecting it.
+
+## Repository guide
+
+Use this section to find the relevant part of the project.
+
+| Path | Purpose |
+|---|---|
+| `boards/esp32-s3-st7735/` | Board-specific configuration for the ESP32-S3 and ST7735 build |
+| `src/` | Main firmware source code |
+| `include/` | Shared header files and declarations |
+| `lib/` | Libraries included with the project |
+| `platformio.ini` | PlatformIO environments, build settings, and dependencies |
+| `custom_8Mb.csv` | Custom flash partition table |
+| `wiring-diagram/` | Wiring diagrams and pinout references, if included |
+| `images/` | Hardware photos and other project images, if included |
+| `installation-guide.txt` | Additional installation notes, if included |
+
+Folder names and files may change as the project develops. The files in the repository are the final reference for the current revision.
+
+## Wiring and pinout
+
+Use the wiring diagrams and pinout references in `wiring-diagram/` when assembling or modifying the device. Make sure the diagram matches the exact board and module revisions you own.
+
+The current five-button GPIO assignments are:
+
+| Button | ESP32-S3 GPIO | Intended function |
 |---|---:|---|
 | UP | GPIO 9 | Move up |
-| SELECT | GPIO 11 | Short press: Select / OK |
+| SELECT | GPIO 11 | Select / OK |
 | LEFT | GPIO 12 | Move left / previous |
 | RIGHT | GPIO 13 | Move right / next |
 | DOWN | GPIO 14 | Move down |
 
-### SELECT long-press
+The buttons are configured as active-low inputs. Confirm the wiring and board configuration before changing any GPIO assignments. Also check for pin reuse, shared buses, and pins reserved by attached peripherals.
 
-The intended control scheme is:
+If you update a pin in firmware, update the wiring diagram and pinout documentation in the same change.
 
-- **Short SELECT press:** Select / OK.
-- **Hold SELECT for approximately 700 ms:** Back / Escape.
-- A long hold should generate one Back event, not repeated events or an additional Select event.
+## Build from source
 
-The precise behavior can vary by screen if a screen handles navigation events differently. Test the main menus and on-screen keyboard separately after changing input code.
+### Requirements
 
-## Display and peripheral wiring
+- ESP32-S3 board matching the project configuration
+- USB data cable that supports data
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [PlatformIO IDE extension](https://platformio.org/install/ide?install=vscode)
+- Python 3, if required by the project's build scripts
 
-The display and optional peripherals must be wired according to the configuration for the exact board revision. Do not infer connections from generic ESP32-S3 pin aliases or from a diagram for a different breakout board.
+### Steps
 
-| Device / interface | What to document |
-|---|---|
-| ST7735 TFT | Controller pins, SPI bus, chip select, data/command, reset, backlight, supply voltage |
-| SPI peripherals | SCK, MOSI, MISO if used, individual chip-select pins, interrupt/control pins |
-| I²C peripherals | SDA, SCL, device address, supply voltage |
-| UART peripherals | TX/RX from the perspective of each device, baud rate, supply voltage |
-| IR receiver / transmitter | Signal GPIO, driver circuit if required, supply and current limits |
-| Battery measurement | Measurement GPIO and the actual divider or sensing circuit, if present |
+1. Download or clone this repository.
+2. Open the project root folder in Visual Studio Code.
+3. Install or enable the PlatformIO IDE extension.
+4. Allow PlatformIO to install the configured dependencies.
+5. Open the PlatformIO terminal and build the project:
 
-### Wiring reference
+   ```bash
+   pio run
+   ```
 
-Add your real diagram to `docs/wiring/wiring-overview.png` and link it here:
+Check `platformio.ini` for the configured build environment and board settings. If the project defines multiple environments, use the environment intended for this hardware.
 
-![Wiring overview](wiring/wiring-overview.png)
+## Upload to the ESP32-S3
 
-If the diagram uses another filename, update the path above to match the committed file.
+Connect the board with a USB data cable, then run:
 
-For a detailed pin-by-pin table, keep a separate file at [`docs/wiring/pinout.md`](wiring/pinout.md). Record the **GPIO number, module pin label, voltage, bus, and the firmware file that configures it**.
-
-## Power and battery
-
-Power arrangements depend on the exact battery, charging board, regulator, and connected peripherals used in your build. Document the actual circuit rather than assuming all similarly named modules have identical protection or pinouts.
-
-Before powering the device:
-
-- Verify battery polarity and the charger board's `B+` / `B-` and output connections.
-- Confirm the battery chemistry and the charger configuration are compatible.
-- Check the regulator's input range, output voltage, and current rating.
-- Confirm every peripheral's permitted supply and logic voltage.
-- Avoid short circuits and exposed battery terminals.
-- Do not charge a swollen, damaged, leaking, or unusually hot lithium battery.
-
-**Do not connect a raw battery directly to a 3.3 V rail unless the complete circuit is explicitly designed for it.** A nominal battery voltage is not its full charge voltage, and electronics tend to be unimpressed by optimistic assumptions.
-
-## Pin verification workflow
-
-When adding or changing a module, use this process:
-
-1. Identify the exact module and revision.
-2. Read its pin labels and electrical requirements.
-3. Check the board configuration and source code for existing GPIO assignments.
-4. Check for shared buses, reserved pins, and pin conflicts.
-5. Update the wiring diagram and pinout table.
-6. Build the firmware and test the module independently.
-7. Record the tested firmware revision and any known limitations.
-
-### Pinout record template
-
-Copy this table into `docs/wiring/pinout.md` and fill it with verified connections.
-
-| Module | Module pin / signal | ESP32-S3 GPIO | Voltage / notes | Firmware location | Status |
-|---|---|---:|---|---|---|
-| TFT display | _Fill in from actual wiring_ | _Verify_ | _Verify_ | `boards/esp32-s3-st7735/` | Not documented |
-| UP button | Signal | GPIO 9 | Active-low | Board input configuration | Configured |
-| SELECT button | Signal | GPIO 11 | Active-low | Board input configuration | Configured |
-| LEFT button | Signal | GPIO 12 | Active-low | Board input configuration | Configured |
-| RIGHT button | Signal | GPIO 13 | Active-low | Board input configuration | Configured |
-| DOWN button | Signal | GPIO 14 | Active-low | Board input configuration | Configured |
-
-Only change a status to **Tested** after checking the real hardware.
-
-## Assembly photos and diagrams
-
-Keep images in the repository so the documentation works directly on GitHub.
-
-Suggested layout:
-
-```text
-docs/
-└── wiring/
-    ├── wiring-overview.png
-    ├── pinout.md
-    ├── display-wiring.png
-    └── power-wiring.png
-
-images/
-├── front.jpg
-├── back.jpg
-├── internals.jpg
-└── firmware-menu.jpg
+```bash
+pio run --target upload
 ```
 
-Suggested photo set:
+If PlatformIO cannot find the board, check the USB cable, serial port, USB-to-serial driver, and upload settings. Some ESP32-S3 boards require you to enter bootloader mode manually.
 
-- **Front:** display, buttons, and enclosure.
-- **Back:** board and enclosure details.
-- **Internals:** wiring, connectors, and power circuit.
-- **Wiring overview:** readable full-system diagram.
-- **Firmware menu:** actual screen output from the current build.
+To view serial output:
 
-Use photos of the real device. Label diagrams clearly and avoid publishing placeholder images as if they were test evidence.
+```bash
+pio device monitor
+```
 
-## Bring-up checklist
+A successful compile or upload does not, by itself, confirm that every display, button, or optional peripheral is working. Test the actual hardware after flashing.
 
-- [ ] GPIO assignments match the firmware configuration.
-- [ ] Power polarity and voltage have been checked before connecting the board.
-- [ ] The TFT starts with the correct orientation and usable colours.
-- [ ] UP, DOWN, LEFT, and RIGHT work as intended.
-- [ ] A short SELECT press selects an item once.
-- [ ] A SELECT hold triggers Back / Escape once.
-- [ ] SELECT behavior has been checked on menus and the on-screen keyboard.
-- [ ] Each connected peripheral has been tested individually.
-- [ ] The committed wiring diagram matches the physical device.
-- [ ] The firmware revision used for testing is recorded.
+## Button controls
+
+The intended five-button navigation is:
+
+| Input | Intended behavior |
+|---|---|
+| UP | Move up |
+| DOWN | Move down |
+| LEFT | Move left / previous |
+| RIGHT | Move right / next |
+| SELECT short press | Select / OK |
+| SELECT hold (about 700 ms) | Back / Escape |
+
+Screen-specific navigation can differ if a screen handles input events in a special way. Check the main menus and on-screen keyboard separately when testing input changes.
 
 ## Troubleshooting
 
-| Symptom | First checks |
+| Problem | Checks |
 |---|---|
-| Display stays blank | Verify supply, ground, backlight, reset, SPI wiring, and the display configuration. |
-| Buttons act by themselves | Check active-low wiring, pull-ups, shorts, and button GPIO definitions. |
-| SELECT triggers the wrong action | Check short/long-press handling and how the current screen consumes Select and Escape events. |
-| Peripheral does not respond | Verify supply voltage, shared bus wiring, chip-select, address, and pin configuration. |
-| Board resets during use | Check the power source, regulator current capacity, wiring, and serial logs. |
+| Display stays blank | Check display power, ground, SPI wiring, reset, backlight, and board-specific display configuration. |
+| Buttons do not respond correctly | Check GPIO assignments, active-low wiring, pull-ups, and input handling. |
+| SELECT performs the wrong action | Check short-press versus long-press logic and how the current screen handles Select and Escape. |
+| Upload fails | Check the USB data cable, serial port, drivers, and bootloader mode. |
+| A peripheral is not detected | Verify its power requirements, pinout, bus wiring, chip-select or address, and firmware configuration. |
+| Device resets unexpectedly | Check the power supply, regulator capacity, wiring, and serial logs. |
 
-## Documentation maintenance
+## Safety and responsible use
 
-When hardware changes, update these together in the same commit:
+Use wireless, NFC/RFID, infrared, and other security-related functions only on devices and systems you own or are explicitly authorised to test. Follow applicable laws and the operating limits of your modules.
 
-1. Board pin configuration and relevant firmware code.
-2. Wiring overview and detailed pinout.
-3. Assembly photos if the physical layout changes.
-4. This guide's hardware table and test checklist.
+Before powering the hardware, verify polarity, voltage levels, current requirements, and battery protection. Do not assume two similar-looking breakout boards have identical pinouts or electrical characteristics.
 
-A diagram that no longer matches the device is worse than no diagram: it confidently teaches the next person to wire it incorrectly.
+## Credits and license
+
+This project is based on [Bruce firmware](https://github.com/BruceDevices/firmware).
+
+Preserve the upstream copyright notices and follow the applicable license terms for Bruce and all included third-party libraries when modifying or redistributing this project. Review the upstream repository's license and the licenses of bundled dependencies before publishing a release. Do not imply that upstream code was written from scratch for this adaptation.
+
+- **Bruce project:** https://bruce.computer/
+- **Upstream firmware:** https://github.com/BruceDevices/firmware
 
 ---
 
-**Related files:** [Project README](../README.md) · [Board configuration](../boards/esp32-s3-st7735/) · [PlatformIO configuration](../platformio.ini)
+Maintained as a DIY firmware and hardware project. If the firmware or wiring changes, keep the repository documentation in sync.
